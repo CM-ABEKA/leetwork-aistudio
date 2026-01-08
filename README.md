@@ -116,25 +116,94 @@ leetwork-studio/
 2. **Configure environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your configuration (default values work for development)
    ```
 
-3. **Start services**
+3. **Start all services**
    ```bash
    docker-compose up -d
    ```
 
-4. **Initialize database**
+4. **Check service status**
    ```bash
-   docker-compose exec postgres psql -U mlplatform -d mlplatform -f /docker-entrypoint-initdb.d/001_initial_schema.sql
+   docker-compose ps
    ```
 
-5. **Access the application**
-   - Frontend: http://localhost:3005
-   - API Docs: http://localhost:8002/docs
-   - MinIO Console: http://localhost:9001
-   - Prometheus: http://localhost:9090
-   - Grafana: http://localhost:3001
+5. **Initialize the database**
+   ```bash
+   docker-compose exec postgres psql -U leetuser -d leetstudio -f /docker-entrypoint-initdb.d/001_initial_schema.sql
+   ```
+
+6. **View logs (optional)**
+   ```bash
+   # All services
+   docker-compose logs -f
+
+   # Specific service
+   docker-compose logs -f frontend
+   docker-compose logs -f orchestrator-service
+   docker-compose logs -f auth-service
+   ```
+
+7. **Access the application**
+   - **Frontend**: http://localhost:3005
+   - **API Documentation (Orchestrator)**: http://localhost:8002/docs
+   - **Auth Service API**: http://localhost:8001/docs
+   - **MinIO Console**: http://localhost:9001
+     - Username: `minioadmin`
+     - Password: `minioadmin123`
+   - **Prometheus**: http://localhost:9090 (if enabled)
+   - **Grafana**: http://localhost:3001 (if enabled)
+
+### Verify Services
+
+**Test API endpoints:**
+```bash
+# Test orchestrator service
+curl http://localhost:8002/
+
+# Test auth service health
+curl http://localhost:8001/health
+```
+
+**Check database connection:**
+```bash
+docker-compose exec postgres psql -U leetuser -d leetstudio -c "SELECT COUNT(*) FROM users;"
+```
+
+### Troubleshooting
+
+**If services fail to start:**
+```bash
+# View error logs for a specific service
+docker-compose logs [service-name]
+
+# Rebuild and restart all services
+docker-compose down
+docker-compose up -d --build
+```
+
+**To stop all services:**
+```bash
+docker-compose down
+```
+
+**To stop and remove all data (full reset):**
+```bash
+docker-compose down -v
+```
+
+**Port conflicts:**
+```bash
+# Check if ports are already in use
+# Windows:
+netstat -ano | findstr :3005
+netstat -ano | findstr :8002
+
+# Linux/Mac:
+lsof -i :3005
+lsof -i :8002
+```
 
 ## Development
 
