@@ -1,0 +1,29 @@
+# FastAPI and ASGI server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Database
+psycopg2-binary==2.9.10
+sqlalchemy==2.0.36
+alembic==1.14.0
+
+# Task Queue
+celery==5.4.0
+redis==5.2.1
+hiredis==3.0.0
+
+# Object Storage (MinIO/S3)
+minio==7.2.12
+boto3==1.35.81
+
+# HTTP Client
+httpx==0.28.1
+
+# Data validation
+pydantic==2.10.5
+pydantic-settings==2.7.1
+
+# Utilities
+python-dotenv==1.0.1
+python-jose[cryptography]==3.3.0
