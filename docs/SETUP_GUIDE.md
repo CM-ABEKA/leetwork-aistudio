@@ -45,10 +45,10 @@ docker-compose ps
 
 ```bash
 # Run database migrations
-docker-compose exec postgres psql -U mlplatform -d mlplatform -f /docker-entrypoint-initdb.d/001_initial_schema.sql
+docker-compose exec postgres psql -U leetuser -d leetstudio -f /docker-entrypoint-initdb.d/001_initial_schema.sql
 
 # (Optional) Load seed data
-docker-compose exec postgres psql -U mlplatform -d mlplatform -f /docker-entrypoint-initdb.d/seed_data.sql
+docker-compose exec postgres psql -U leetuser -d leetstudio -f /docker-entrypoint-initdb.d/seed_data.sql
 ```
 
 ### 5. Access the Application
@@ -124,11 +124,11 @@ uvicorn main:app --reload --port 8002
 
 ```bash
 # Via Docker
-docker-compose exec postgres psql -U mlplatform -d mlplatform
+docker-compose exec postgres psql -U leetuser -d leetstudio
 
 # Locally (if psql installed)
-psql -h localhost -p 5432 -U mlplatform -d mlplatform
-# Password: mlplatform_dev_pass
+psql -h localhost -p 5432 -U leetuser -d leetstudio
+# Password: test
 ```
 
 #### Common Database Commands
@@ -151,7 +151,7 @@ SELECT * FROM project_statistics;
 
 ```bash
 # Apply all migrations
-docker-compose exec postgres psql -U mlplatform -d mlplatform -f /docker-entrypoint-initdb.d/001_initial_schema.sql
+docker-compose exec postgres psql -U leetuser -d leetstudio -f /docker-entrypoint-initdb.d/001_initial_schema.sql
 
 # Reset database (WARNING: Deletes all data)
 docker-compose down -v

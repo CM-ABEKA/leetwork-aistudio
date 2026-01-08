@@ -8,9 +8,9 @@ services:
     image: postgres:16-alpine
     container_name: ml-platform-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mlplatform}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlplatform_dev_pass}
-      POSTGRES_DB: ${POSTGRES_DB:-mlplatform}
+      POSTGRES_USER: ${POSTGRES_USER:-leetuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test}
+      POSTGRES_DB: ${POSTGRES_DB:-leetstudio}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -18,7 +18,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlplatform}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-leetuser}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -96,7 +96,7 @@ services:
       dockerfile: Dockerfile
     container_name: ml-platform-auth
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-mlplatform}:${POSTGRES_PASSWORD:-mlplatform_dev_pass}@postgres:5432/${POSTGRES_DB:-mlplatform}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-leetuser}:${POSTGRES_PASSWORD:-test}@postgres:5432/${POSTGRES_DB:-leetstudio}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_dev_pass}@redis:6379/0
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
@@ -121,7 +121,7 @@ services:
       dockerfile: Dockerfile
     container_name: ml-platform-orchestrator
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-mlplatform}:${POSTGRES_PASSWORD:-mlplatform_dev_pass}@postgres:5432/${POSTGRES_DB:-mlplatform}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-leetuser}:${POSTGRES_PASSWORD:-test}@postgres:5432/${POSTGRES_DB:-leetstudio}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_dev_pass}@redis:6379/0
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
@@ -177,7 +177,7 @@ services:
     container_name: ml-platform-celery-cpu
     command: celery -A celery_app worker --loglevel=info -Q cpu_queue --concurrency=4 --hostname=worker-cpu@%h
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-mlplatform}:${POSTGRES_PASSWORD:-mlplatform_dev_pass}@postgres:5432/${POSTGRES_DB:-mlplatform}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-leetuser}:${POSTGRES_PASSWORD:-test}@postgres:5432/${POSTGRES_DB:-leetstudio}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_dev_pass}@redis:6379/0
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
@@ -204,7 +204,7 @@ services:
     container_name: ml-platform-celery-beat
     command: celery -A celery_app beat --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-mlplatform}:${POSTGRES_PASSWORD:-mlplatform_dev_pass}@postgres:5432/${POSTGRES_DB:-mlplatform}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-leetuser}:${POSTGRES_PASSWORD:-test}@postgres:5432/${POSTGRES_DB:-leetstudio}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_dev_pass}@redis:6379/0
     depends_on:
       redis:

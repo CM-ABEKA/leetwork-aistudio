@@ -279,10 +279,10 @@ GROUP BY u.id, u.email, u.full_name;
 -- GRANT PERMISSIONS
 -- ============================================
 
--- Grant all privileges to the mlplatform user
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO mlplatform;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO mlplatform;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO mlplatform;
+-- Grant all privileges to the leetuser user
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO leetuser;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO leetuser;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO leetuser;
 
 -- ============================================
 -- INITIAL DATA (Optional)
