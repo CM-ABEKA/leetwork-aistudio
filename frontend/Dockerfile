@@ -17,7 +17,7 @@ RUN npm ci
 COPY . .
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3005
 
 # Development command (will be overridden by docker-compose)
 CMD ["npm", "run", "dev"]
@@ -74,7 +74,7 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3005
 
 # Start application
 CMD ["npm", "start"]

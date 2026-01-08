@@ -53,7 +53,7 @@ docker-compose exec postgres psql -U leetuser -d leetstudio -f /docker-entrypoin
 
 ### 5. Access the Application
 
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:3005
 - **API Documentation**: http://localhost:8002/docs
 - **Auth Service API**: http://localhost:8001/docs
 - **MinIO Console**: http://localhost:9001
