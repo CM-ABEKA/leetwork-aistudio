@@ -5,12 +5,177 @@ Prediction router for making predictions with trained models.
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 import pandas as pd
+import numpy as np
 import pickle
 import os
 import io
-from typing import Optional
+from typing import Optional, Dict, Any
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from utils.storage import get_minio_client
 
 router = APIRouter()
+
+
+def get_model_path(job_id: str, project_id: Optional[str] = None) -> str:
+    """
+    Get model path, downloading from MinIO if not available locally.
+
+    Args:
+        job_id: Training job ID
+        project_id: Optional project ID (tries to infer if not provided)
+
+    Returns:
+        Path to local model file
+
+    Raises:
+        HTTPException: If model not found locally or in MinIO
+    """
+    # Try local path first
+    local_path = f"/tmp/training_jobs/{job_id}/model.pkl"
+
+    if os.path.exists(local_path):
+        return local_path
+
+    # Model not found locally, try to download from MinIO
+    print(f"Model not found locally for job {job_id}, attempting MinIO download...")
+
+    try:
+        minio_client = get_minio_client()
+
+        # If project_id not provided, we need to search for the model
+        # Try common pattern: models/{project_id}/{job_id}/model.pkl
+        # For now, we'll list objects and find the matching job_id
+
+        from minio.error import S3Error
+
+        bucket = minio_client.bucket
+        prefix = "models/"
+
+        # Search for model in MinIO
+        found_object = None
+        try:
+            objects = minio_client.client.list_objects(bucket, prefix=prefix, recursive=True)
+            for obj in objects:
+                if f"/{job_id}/model.pkl" in obj.object_name:
+                    found_object = obj.object_name
+                    break
+        except S3Error as e:
+            print(f"Error searching MinIO: {e}")
+
+        if not found_object:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model not found. The model may have been deleted or not uploaded to storage. Job ID: {job_id}"
+            )
+
+        # Download model from MinIO
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        minio_client.download_model(found_object, local_path)
+
+        print(f"Successfully downloaded model from MinIO: {found_object}")
+        return local_path
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Failed to retrieve model from MinIO: {e}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Model not found locally or in storage. Please retrain the model. Job ID: {job_id}"
+        )
+
+
+def preprocess_prediction_data(df: pd.DataFrame, preprocessing_info: Dict[str, Any]) -> pd.DataFrame:
+    """
+    Preprocess new data for prediction using saved preprocessing transformers.
+    Model was trained only on features available in the prediction sample, so all features should be present.
+
+    Args:
+        df: Input dataframe to preprocess
+        preprocessing_info: Dictionary containing preprocessing transformers and column info
+
+    Returns:
+        Preprocessed dataframe ready for model prediction
+    """
+    df = df.copy()
+
+    # Get saved preprocessing info
+    numeric_cols = preprocessing_info.get('numeric_cols', [])
+    categorical_cols = preprocessing_info.get('categorical_cols', [])
+    training_columns = preprocessing_info.get('training_columns', [])
+    label_encoders = preprocessing_info.get('label_encoders', {})
+    scaler = preprocessing_info.get('scaler')
+    imputer = preprocessing_info.get('imputer')
+
+    # Check for missing columns - should not happen if model was trained correctly with prediction sample
+    missing_cols = [col for col in training_columns if col not in df.columns]
+    if missing_cols:
+        raise ValueError(
+            f"Prediction data is missing required columns: {missing_cols}. "
+            f"Model was trained with these features based on your prediction sample."
+        )
+
+    # Remove extra columns not present in training
+    extra_cols = [col for col in df.columns if col not in training_columns]
+    if extra_cols:
+        df = df.drop(columns=extra_cols)
+
+    # Ensure column order matches training
+    df = df[training_columns]
+
+    # Encode categorical columns using saved encoders
+    for col in categorical_cols:
+        if col in df.columns and col in label_encoders:
+            le = label_encoders[col]
+            # Handle unseen categories by replacing with first known category
+            df[col] = df[col].astype(str)
+            df[col] = df[col].apply(lambda x: x if x in le.classes_ else le.classes_[0])
+            df[col] = le.transform(df[col])
+
+    # Handle missing values using saved imputer
+    if numeric_cols and imputer:
+        df[numeric_cols] = imputer.transform(df[numeric_cols])
+
+    # Scale numeric features using saved scaler
+    if numeric_cols and scaler:
+        df[numeric_cols] = scaler.transform(df[numeric_cols])
+
+    return df
+
+
+@router.get("/features/{job_id}")
+async def get_model_features(job_id: str):
+    """
+    Get the feature names and types for a trained model.
+
+    Args:
+        job_id: Training job ID
+
+    Returns:
+        Feature information including names, types, and target column
+    """
+    try:
+        # Load the trained model (from local or MinIO)
+        model_path = get_model_path(job_id)
+
+        with open(model_path, 'rb') as f:
+            model_bundle = pickle.load(f)
+
+        metadata = model_bundle['metadata']
+
+        return {
+            "features": metadata['features'],
+            "target_column": metadata['target_column'],
+            "problem_type": metadata['problem_type'],
+            "numeric_cols": metadata.get('preprocessing', {}).get('numeric_cols', []),
+            "categorical_cols": metadata.get('preprocessing', {}).get('categorical_cols', [])
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load model features: {str(e)}")
 
 
 @router.post("/batch")
@@ -43,11 +208,8 @@ async def predict_batch(
         if df.empty:
             raise HTTPException(status_code=400, detail="CSV file is empty")
 
-        # Load the trained model
-        model_path = f"/tmp/training_jobs/{job_id}/model.pkl"
-
-        if not os.path.exists(model_path):
-            raise HTTPException(status_code=404, detail="Model not found. Please train the model first.")
+        # Load the trained model (from local or MinIO)
+        model_path = get_model_path(job_id)
 
         try:
             with open(model_path, 'rb') as f:
@@ -67,12 +229,16 @@ async def predict_batch(
             df_original = df.copy()
             had_target = False
 
-        # Preprocess the input data (same as training)
-        from core.training import preprocess_data
+        # Preprocess the input data using saved preprocessing transformers
+        preprocessing_info = metadata.get('preprocessing', {})
 
-        # Create a dummy dataframe for preprocessing (we need train and test)
-        # Use the input data as both train and test
-        df_processed, _, _ = preprocess_data(df_original, df_original.copy())
+        try:
+            df_processed = preprocess_prediction_data(df_original, preprocessing_info)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Preprocessing failed: {str(e)}"
+            )
 
         # Make predictions
         try:
@@ -80,7 +246,7 @@ async def predict_batch(
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Prediction failed. Ensure CSV has the same features as training data. Error: {str(e)}"
+                detail=f"Prediction failed: {str(e)}"
             )
 
         # Add predictions to the original dataframe
@@ -131,11 +297,8 @@ async def predict_single(
         except:
             raise HTTPException(status_code=400, detail="Invalid JSON for features")
 
-        # Load the trained model
-        model_path = f"/tmp/training_jobs/{job_id}/model.pkl"
-
-        if not os.path.exists(model_path):
-            raise HTTPException(status_code=404, detail="Model not found")
+        # Load the trained model (from local or MinIO)
+        model_path = get_model_path(job_id)
 
         with open(model_path, 'rb') as f:
             model_bundle = pickle.load(f)
@@ -146,9 +309,9 @@ async def predict_single(
         # Convert features to DataFrame
         df = pd.DataFrame([feature_dict])
 
-        # Preprocess
-        from core.training import preprocess_data
-        df_processed, _, _ = preprocess_data(df, df.copy())
+        # Preprocess using saved preprocessing transformers
+        preprocessing_info = metadata.get('preprocessing', {})
+        df_processed = preprocess_prediction_data(df, preprocessing_info)
 
         # Predict
         prediction = model.predict(df_processed)[0]

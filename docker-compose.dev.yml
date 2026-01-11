@@ -1,0 +1,7 @@
+services:
+  ml-classical-service:
+    build:
+      context: ./backend/ml-classical-service
+      target: development
+    volumes:
+      - ./backend/ml-classical-service:/app

@@ -7,6 +7,9 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
 
 
 def get_random_forest_classifier():
@@ -76,4 +79,44 @@ def get_decision_tree_classifier():
         min_samples_split=5,
         min_samples_leaf=2,
         random_state=42
+    )
+
+
+def get_knn_classifier():
+    """
+    K-Nearest Neighbors Classifier - instance-based learning.
+    Simple and effective for smaller datasets.
+    """
+    return KNeighborsClassifier(
+        n_neighbors=5,
+        weights='distance',  # Weight by inverse distance
+        algorithm='auto',
+        n_jobs=-1  # Use all CPU cores
+    )
+
+
+def get_naive_bayes_classifier():
+    """
+    Gaussian Naive Bayes - fast probabilistic classifier.
+    Assumes features are independent. Good for text and simple classification.
+    """
+    return GaussianNB()
+
+
+def get_neural_network_classifier():
+    """
+    Multi-Layer Perceptron (Neural Network) - powerful deep learning.
+    Can learn complex non-linear patterns.
+    """
+    return MLPClassifier(
+        hidden_layer_sizes=(100, 50),  # Two hidden layers
+        activation='relu',
+        solver='adam',
+        alpha=0.0001,  # L2 regularization
+        batch_size='auto',
+        learning_rate='adaptive',
+        max_iter=500,
+        random_state=42,
+        early_stopping=True,
+        validation_fraction=0.1
     )

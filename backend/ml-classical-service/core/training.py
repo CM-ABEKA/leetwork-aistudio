@@ -23,7 +23,11 @@ from algorithms.classification import (
     get_random_forest_classifier,
     get_gradient_boosting_classifier,
     get_logistic_regression,
-    get_svm_classifier
+    get_svm_classifier,
+    get_decision_tree_classifier,
+    get_knn_classifier,
+    get_naive_bayes_classifier,
+    get_neural_network_classifier
 )
 from algorithms.regression import (
     get_random_forest_regressor,
@@ -58,6 +62,22 @@ ALGORITHM_MAP = {
     'ridge': {
         'classification': None,
         'regression': get_ridge_regression
+    },
+    'decision_tree': {
+        'classification': get_decision_tree_classifier,
+        'regression': None
+    },
+    'knn': {
+        'classification': get_knn_classifier,
+        'regression': None
+    },
+    'naive_bayes': {
+        'classification': get_naive_bayes_classifier,
+        'regression': None
+    },
+    'neural_network': {
+        'classification': get_neural_network_classifier,
+        'regression': None
     }
 }
 
@@ -111,11 +131,13 @@ def preprocess_data(X_train: pd.DataFrame, X_test: pd.DataFrame):
     preprocessing_info['numeric_cols'] = numeric_cols
     preprocessing_info['categorical_cols'] = categorical_cols
 
-    # Handle missing values in numeric columns
+    # Handle missing values in numeric columns - save imputer
+    imputer = None
     if numeric_cols:
         imputer = SimpleImputer(strategy='median')
         X_train[numeric_cols] = imputer.fit_transform(X_train[numeric_cols])
         X_test[numeric_cols] = imputer.transform(X_test[numeric_cols])
+        preprocessing_info['imputer'] = imputer
 
     # Encode categorical columns
     label_encoders = {}
@@ -136,6 +158,9 @@ def preprocess_data(X_train: pd.DataFrame, X_test: pd.DataFrame):
         X_train[numeric_cols] = scaler.fit_transform(X_train[numeric_cols])
         X_test[numeric_cols] = scaler.transform(X_test[numeric_cols])
         preprocessing_info['scaler'] = scaler
+
+    # Save the exact column order and names from training
+    preprocessing_info['training_columns'] = X_train.columns.tolist()
 
     return X_train, X_test, preprocessing_info
 
@@ -295,10 +320,7 @@ def train_model_with_algorithm(
             'training_samples': len(train_df),
             'test_samples': len(test_df),
             'features': X_train.columns.tolist(),
-            'preprocessing': {
-                'numeric_cols': preprocessing_info.get('numeric_cols', []),
-                'categorical_cols': preprocessing_info.get('categorical_cols', [])
-            }
+            'preprocessing': preprocessing_info  # Save all preprocessing info including transformers
         }
 
         save_model_pickle(model, model_path, metadata)
