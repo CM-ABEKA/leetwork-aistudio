@@ -230,32 +230,6 @@ cd frontend && npm test
 cd backend && pytest
 ```
 
-## Roadmap
-
-### Phase 0: Foundation ✅ (Weeks 1-2)
-- [x] Project setup and infrastructure
-- [x] Docker Compose configuration
-- [x] Database schema
-
-### Phase 1: Authentication & Core UI (Weeks 3-4)
-- [ ] User registration and login
-- [ ] Dashboard layout
-- [ ] Protected routes
-
-### Phase 2: Classical ML Domain (Weeks 5-8) - **MVP**
-- [ ] Data upload and cleaning
-- [ ] Model training (Logistic Regression, Random Forest, XGBoost)
-- [ ] Evaluation and metrics
-- [ ] Model download
-
-### Phase 3-12: Full Vision (Months 3-12)
-- [ ] Additional AI domains (NLP, Vision, Audio, etc.)
-- [ ] AutoML and explainability
-- [ ] Model deployment and serving
-- [ ] Production optimization
-
-See [CLAUD_AISTUDIO_PLAN.md](../CLAUD_AISTUDIO_PLAN.md) for the complete roadmap.
-
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
@@ -268,7 +242,6 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for gu
 
 ## Documentation
 
-- [Master Plan](../CLAUD_AISTUDIO_PLAN.md) - Complete project specification
 - [Architecture](./docs/architecture.md) - System architecture details
 - [API Reference](./docs/api-reference.md) - API documentation
 - [User Guide](./docs/user-guide.md) - End-user documentation
